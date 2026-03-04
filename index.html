@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>可编辑记账表 · 六列自动求和</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+        }
+        body {
+            background: #f4f7fb;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 20px;
+        }
+        .card {
+            background: white;
+            max-width: 1200px;
+            width: 100%;
+            border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08), 0 6px 12px rgba(0, 0, 0, 0.05);
+            padding: 28px 24px 32px;
+        }
+        h1 {
+            font-size: 1.9rem;
+            font-weight: 500;
+            color: #1e293b;
+            margin-top: 0;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.01em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        h1 small {
+            font-size: 0.9rem;
+            font-weight: 400;
+            color: #64748b;
+            margin-left: auto;
+        }
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 24px;
+            background: #f8fafc;
+            padding: 16px 20px;
+            border-radius: 20px;
+            border: 1px solid #e2e8f0;
+        }
+        .btn {
+            background: white;
+            border: 1px solid #cbd5e1;
+            padding: 8px 18px;
+            border-radius: 40px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #1e293b;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.15s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+        .btn:hover {
+            background: #f1f5f9;
+            border-color: #94a3b8;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.04);
+        }
+        .btn.primary {
+            background: #2d3c5e;
+            border-color: #1e2b42;
+            color: white;
+        }
+        .btn.primary:hover {
+            background: #1e2b42;
+        }
+        .btn.danger {
+            color: #b91c1c;
+            border-color: #fecaca;
+            background: #fff5f5;
+        }
+        .btn.danger:hover {
+            background: #fee2e2;
+            border-color: #f87171;
+        }
+        .table-wrapper {
+            border-radius: 18px;
+            border: 1px solid #e9eef2;
+            overflow-x: auto;
+            background: white;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 700px;
+            table-layout: fixed;
+        }
+        th {
+            background: #f1f6f9;
+            color: #1e3a5f;
+            font-weight: 600;
+            font-size: 0.95rem;
+            padding: 16px 12px;
+            text-align: left;
+            border-bottom: 1px solid #d0dde8;
+            white-space: nowrap;
+        }
+        td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #e6edf4;
+            vertical-align: middle;
+            background-color: white;
+        }
+        tr:last-child td {
+            border-bottom: none;
+        }
+        /* 列宽提示 */
+        th:nth-child(1) { width: 14%; }  /* 日期 */
+        th:nth-child(2) { width: 12%; }  /* 美团 */
+        th:nth-child(3) { width: 12%; }  /* 淘宝 */
+        th:nth-child(4) { width: 12%; }  /* 堂食 */
+        th:nth-child(5) { width: 12%; }  /* 京东 */
+        th:nth-child(6) { width: 12%; }  /* 行和 */
+
+        input {
+            width: 100%;
+            border: none;
+            padding: 10px 8px;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            background: #ffffff;
+            border: 1px solid #e0e8ef;
+            transition: 0.15s;
+            outline: none;
+        }
+        input:focus {
+            border-color: #6a8bbf;
+            box-shadow: 0 0 0 3px rgba(58, 92, 146, 0.15);
+            background-color: #fcfdff;
+        }
+        input[type="number"] {
+            -moz-appearance: textfield;
+        }
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        .sum-cell {
+            font-weight: 600;
+            color: #0b3b5c;
+            background-color: #f4f9ff;
+            text-align: right;
+            padding-right: 18px;
+            font-size: 1.05rem;
+            border-radius: 0 12px 12px 0;
+            white-space: nowrap;
+        }
+        /* 日期输入适配 */
+        input[type="date"] {
+            color: #1e293b;
+            font-family: inherit;
+            padding: 8px 8px;
+        }
+        .footer-note {
+            margin-top: 18px;
+            font-size: 0.8rem;
+            color: #6f7d95;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .badge {
+            background: #e6f0fa;
+            padding: 4px 10px;
+            border-radius: 40px;
+            color: #24598b;
+        }
+    </style>
+</head>
+<body>
+<div class="card">
+    <h1>
+        📋 每日花销表
+        <small>美团 · 淘宝 · 堂食 · 京东</small>
+    </h1>
+
+    <div class="toolbar">
+        <button class="btn" id="addRowBtn" title="新增一行记录">➕ 添加行</button>
+        <button class="btn danger" id="deleteLastRowBtn" title="删除最后一行">🗑️ 删除最后一行</button>
+        <button class="btn primary" id="saveBtn">💾 保存到本地</button>
+        <button class="btn" id="resetSampleBtn">📋 载入示例</button>
+        <span style="flex:1"></span>
+        <span class="badge">点击单元格直接编辑，总和自动计算</span>
+    </div>
+
+    <div class="table-wrapper">
+        <table id="dataTable">
+            <thead>
+            <tr>
+                <th>📅 日期</th>
+                <th>🍜 美团</th>
+                <th>🛒 淘宝</th>
+                <th>🍽️ 堂食</th>
+                <th>📦 京东</th>
+                <th>➕ 每行总和</th>
+            </tr>
+            </thead>
+            <tbody id="tableBody">
+            <!-- 动态生成行 -->
+            </tbody>
+        </table>
+    </div>
+
+    <div class="footer-note">
+        <span>✨ 修改数值后总和自动更新 · 数据保存在浏览器本地</span>
+        <span>⚡ 点击「保存到本地」永久存储</span>
+    </div>
+</div>
+
+<script>
+    (function() {
+        // ---------- DOM 元素 ----------
+        const tbody = document.getElementById('tableBody');
+        const table = document.getElementById('dataTable');
+        const addBtn = document.getElementById('addRowBtn');
+        const deleteLastBtn = document.getElementById('deleteLastRowBtn');
+        const saveBtn = document.getElementById('saveBtn');
+        const resetSampleBtn = document.getElementById('resetSampleBtn');
+
+        // ---------- 工具函数 ----------
+        // 获取今日日期字符串 yyyy-mm-dd
+        function getTodayDate() {
+            const d = new Date();
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        // 更新指定行的总和 (第六列)
+        function updateRowSum(row) {
+            if (!row) return;
+            // 获取该行所有带 .num-input 的输入框 (美团、淘宝、堂食、京东)
+            const numInputs = row.querySelectorAll('.num-input');
+            let sum = 0;
+            numInputs.forEach(input => {
+                let val = parseFloat(input.value);
+                if (isNaN(val)) val = 0;
+                sum += val;
+            });
+            // 第六个 td 显示总和，保留两位小数
+            const sixthCell = row.cells[5];  // cells 索引从0开始，5即第六列
+            if (sixthCell) {
+                sixthCell.innerText = sum.toFixed(2);
+            }
+        }
+
+        // 更新表格所有行的总和 (用于初始化后统一校正)
+        function updateAllRows() {
+            const rows = tbody.querySelectorAll('tr');
+            rows.forEach(row => updateRowSum(row));
+        }
+
+        // ---------- 创建新行 (支持传入初始数据对象) ----------
+        // 如果传入了 dataItem，则使用其中的值；否则默认日期为今天，数值默认为 '0'
+        function createRow(dataItem = null) {
+            const tr = document.createElement('tr');
+
+            // 1. 日期列 (第一列)
+            const td1 = document.createElement('td');
+            const dateInput = document.createElement('input');
+            dateInput.type = 'date';
+            dateInput.className = 'date-input';
+            // 设置默认值
+            if (dataItem && dataItem.date !== undefined) {
+                dateInput.value = dataItem.date;
+            } else {
+                dateInput.value = getTodayDate();   // 默认今天
+            }
+            td1.appendChild(dateInput);
+            tr.appendChild(td1);
+
+            // 2. 美团列 (第二列)
+            const td2 = document.createElement('td');
+            const meiInput = document.createElement('input');
+            meiInput.type = 'number';
+            meiInput.step = 'any';        // 允许小数
+            meiInput.className = 'num-input';   // 用于求和
+            meiInput.placeholder = '0.00';
+            if (dataItem && dataItem.meituan !== undefined) {
+                meiInput.value = dataItem.meituan;
+            } else {
+                meiInput.value = '0';
+            }
+            td2.appendChild(meiInput);
+            tr.appendChild(td2);
+
+            // 3. 淘宝列 (第三列)
+            const td3 = document.createElement('td');
+            const taoInput = document.createElement('input');
+            taoInput.type = 'number';
+            taoInput.step = 'any';
+            taoInput.className = 'num-input';
+            taoInput.placeholder = '0.00';
+            if (dataItem && dataItem.taobao !== undefined) {
+                taoInput.value = dataItem.taobao;
+            } else {
+                taoInput.value = '0';
+            }
+            td3.appendChild(taoInput);
+            tr.appendChild(td3);
+
+            // 4. 堂食列 (第四列)
+            const td4 = document.createElement('td');
+            const tangInput = document.createElement('input');
+            tangInput.type = 'number';
+            tangInput.step = 'any';
+            tangInput.className = 'num-input';
+            tangInput.placeholder = '0.00';
+            if (dataItem && dataItem.tangshi !== undefined) {
+                tangInput.value = dataItem.tangshi;
+            } else {
+                tangInput.value = '0';
+            }
+            td4.appendChild(tangInput);
+            tr.appendChild(td4);
+
+            // 5. 京东列 (第五列)
+            const td5 = document.createElement('td');
+            const jingInput = document.createElement('input');
+            jingInput.type = 'number';
+            jingInput.step = 'any';
+            jingInput.className = 'num-input';
+            jingInput.placeholder = '0.00';
+            if (dataItem && dataItem.jingdong !== undefined) {
+                jingInput.value = dataItem.jingdong;
+            } else {
+                jingInput.value = '0';
+            }
+            td5.appendChild(jingInput);
+            tr.appendChild(td5);
+
+            // 6. 总和列 (第六列) - 只显示文本，不可编辑
+            const td6 = document.createElement('td');
+            td6.className = 'sum-cell';
+            td6.innerText = '0.00';   // 临时占位，稍后 updateRowSum 会修正
+            tr.appendChild(td6);
+
+            return tr;
+        }
+
+        // ---------- 向表格追加一行 (基于数据) ----------
+        function appendRowFromData(dataItem = null) {
+            const newRow = createRow(dataItem);
+            tbody.appendChild(newRow);
+            updateRowSum(newRow);   // 确保总和显示正确
+        }
+
+        // ---------- 加载数据数组到表格 (完全替换) ----------
+        function renderFromData(dataArray) {
+            // 清空 tbody
+            tbody.innerHTML = '';
+            if (!dataArray || dataArray.length === 0) {
+                // 如果没有数据，可以加一条空行方便用户 (日期今天，数值0)
+                appendRowFromData({ date: getTodayDate(), meituan: '0', taobao: '0', tangshi: '0', jingdong: '0' });
+                return;
+            }
+            dataArray.forEach(item => {
+                // 保证每个字段都有值 (防止缺失)
+                const rowData = {
+                    date: item.date || getTodayDate(),
+                    meituan: item.meituan !== undefined ? item.meituan : '0',
+                    taobao: item.taobao !== undefined ? item.taobao : '0',
+                    tangshi: item.tangshi !== undefined ? item.tangshi : '0',
+                    jingdong: item.jingdong !== undefined ? item.jingdong : '0'
+                };
+                appendRowFromData(rowData);
+            });
+        }
+
+        // ---------- 获取当前表格所有数据 (用于保存) ----------
+        function getCurrentTableData() {
+            const rows = tbody.querySelectorAll('tr');
+            const data = [];
+            rows.forEach(row => {
+                const dateInput = row.querySelector('.date-input');
+                const numInputs = row.querySelectorAll('.num-input'); // 顺序: 美团,淘宝,堂食,京东
+                if (numInputs.length >= 4) {
+                    const item = {
+                        date: dateInput ? dateInput.value : '',
+                        meituan: numInputs[0].value,
+                        taobao: numInputs[1].value,
+                        tangshi: numInputs[2].value,
+                        jingdong: numInputs[3].value
+                    };
+                    data.push(item);
+                }
+            });
+            return data;
+        }
+
+        // ---------- 保存到 localStorage ----------
+        function saveToStorage() {
+            const data = getCurrentTableData();
+            localStorage.setItem('expenseTableData', JSON.stringify(data));
+            alert('✅ 当前数据已保存到浏览器本地！');
+        }
+
+        // ---------- 从 localStorage 加载，若无则使用示例数据 ----------
+        function loadFromStorage() {
+            const stored = localStorage.getItem('expenseTableData');
+            if (stored) {
+                try {
+                    const parsed = JSON.parse(stored);
+                    if (Array.isArray(parsed)) {
+                        renderFromData(parsed);
+                    } else {
+                        loadSampleData();  // 格式不对，用示例
+                    }
+                } catch (e) {
+                    loadSampleData();
+                }
+            } else {
+                loadSampleData();   // 第一次使用，展示示例
+            }
+        }
+
+        // ---------- 示例数据 (三个常见行) ----------
+        function loadSampleData() {
+            const today = getTodayDate();
+            // 计算昨天和明天
+            const d = new Date();
+            d.setDate(d.getDate() - 1);
+            const yesterday = d.toISOString().split('T')[0];
+            d.setDate(d.getDate() + 2);
+            const tomorrow = d.toISOString().split('T')[0];
+
+            const sample = [
+                { date: today, meituan: '28.5', taobao: '99.9', tangshi: '45', jingdong: '129' },
+                { date: yesterday, meituan: '15', taobao: '200.5', tangshi: '32', jingdong: '0' },
+                { date: tomorrow, meituan: '0', taobao: '49.9', tangshi: '78', jingdong: '23.7' }
+            ];
+            renderFromData(sample);
+        }
+
+        // ---------- 事件代理: 监听所有 .num-input 的 input 事件，实时更新行和 ----------
+        table.addEventListener('input', function(e) {
+            const target = e.target;
+            if (target.classList.contains('num-input')) {
+                const row = target.closest('tr');
+                if (row) {
+                    updateRowSum(row);
+                }
+            }
+        });
+
+        // ---------- 添加行 ----------
+        addBtn.addEventListener('click', function() {
+            // 添加一行，使用默认值 (今天日期，四个数值默认为 '0')
+            appendRowFromData({ date: getTodayDate(), meituan: '0', taobao: '0', tangshi: '0', jingdong: '0' });
+        });
+
+        // ---------- 删除最后一行 (至少保留一行) ----------
+        deleteLastBtn.addEventListener('click', function() {
+            if (tbody.children.length > 0) {
+                tbody.removeChild(tbody.lastElementChild);
+                // 如果表格变空，可以自动加一行? 但为了体验，如果删光我们加一个默认行
+                if (tbody.children.length === 0) {
+                    appendRowFromData({ date: getTodayDate(), meituan: '0', taobao: '0', tangshi: '0', jingdong: '0' });
+                }
+            } else {
+                // 本来就空，加一行
+                appendRowFromData({ date: getTodayDate(), meituan: '0', taobao: '0', tangshi: '0', jingdong: '0' });
+            }
+        });
+
+        // ---------- 保存按钮 ----------
+        saveBtn.addEventListener('click', function() {
+            saveToStorage();
+        });
+
+        // ---------- 重置为示例 ----------
+        resetSampleBtn.addEventListener('click', function() {
+            loadSampleData();
+        });
+
+        // ---------- 初始化: 从存储加载，如果没有则示例 ----------
+        loadFromStorage();
+
+        // 额外保险：刚加载完后可能某些行和没更新（如果使用示例数据append已经内部更新，但以防万一）
+        // 尤其是如果直接innerHTML清空再append，已经每行update，但再调用一次确保万无一失
+        updateAllRows();
+
+        // 可选：当窗口失去焦点时自动保存？为了简单不自动保存，保留手动保存。
+    })();
+</script>
+</body>
+</html>
